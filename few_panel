@@ -1,0 +1,69 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "panels": [
+    {
+      "title": "API request rate",
+      "type": "graph",
+      "datasource": "DS_PROMETHEUS",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(apiserver_request_total{uuid=\"$uuid\", job=\"$job_name\", verb=\"$verb\", resource=\"$resource\"}[5m])"
+        }
+      ]
+    },
+    {
+      "title": "P99 API calls latency",
+      "type": "graph",
+      "datasource": "DS_PROMETHEUS",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, rate(apiserver_request_duration_seconds_bucket{uuid=\"$uuid\", job=\"$job_name\", verb=\"$verb\", resource=\"$resource\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "title": "API Status code rate",
+      "type": "graph",
+      "datasource": "DS_PROMETHEUS",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(apiserver_request_total{uuid=\"$uuid\", job=\"$job_name\", verb=\"$verb\", code=\"$code\"}[5m])"
+        }
+      ]
+    },
+    {
+      "title": "API Inflight requests",
+      "type": "graph",
+      "datasource": "DS_PROMETHEUS",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "apiserver_request_inflight{uuid=\"$uuid\", job=\"$job_name\"}"
+        }
+      ]
+    },
+    {
+      "title": "FlowSchema request rate",
+      "type": "graph",
+      "datasource": "DS_PROMETHEUS",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(apiserver_flowcontrol_request_total{uuid=\"$uuid\", job=\"$job_name\", flow_schema=~\".*\"}[5m])"
+        }
+      ]
+    }
+  ]
+}
