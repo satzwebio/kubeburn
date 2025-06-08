@@ -601,7 +601,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^labels\\.cluster_version$/",
+          "fields": "/^labels.cluster_version$/",
           "values": false
         },
         "textMode": "value"
@@ -669,7 +669,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^labels\\.version$/",
+          "fields": "/^labels.version$/",
           "values": false
         },
         "textMode": "value"
