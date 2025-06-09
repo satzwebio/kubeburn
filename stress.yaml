@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-crasher
+spec:
+  replicas: 30  # You must tune this based on your cluster size
+  selector:
+    matchLabels:
+      app: stress-pod
+  template:
+    metadata:
+      labels:
+        app: stress-pod
+    spec:
+      containers:
+      - name: stress
+        image: registry.access.redhat.com/ubi9/ubi-minimal
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Stressing...";
+
+            # Use all CPUs (infinite loops)
+            for i in $(seq 1 $(nproc)); do while : ; do : ; done & done
+
+            # Allocate almost all memory (here, 900Mi)
+            for i in $(seq 1 9); do dd if=/dev/zero of=/dev/shm/memtest_$i bs=1M count=100 & done
+
+            sleep infinity
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "900Mi"
+          limits:
+            cpu: "1000m"
+            memory: "900Mi"
+        volumeMounts:
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
