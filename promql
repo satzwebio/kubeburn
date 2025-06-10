@@ -1,0 +1,76 @@
+ 1. Request Rate (QPS / RPS)
+
+sum by(cluster, namespace) (
+  rate(http_requests_total[1m])
+)
+🔄 Replace cluster with your cluster label if you're federating metrics or using Thanos.
+
+If not federating: just split by namespace or pod.
+
+
+sum by(namespace) (
+  rate(http_requests_total[1m])
+)
+📉 2. Latency (Request Duration Percentiles)
+
+histogram_quantile(0.95,
+  sum by(le, namespace) (
+    rate(http_request_duration_seconds_bucket[5m])
+  )
+)
+You can do 50th, 90th, 95th percentiles by changing 0.95.
+
+🚨 3. Error Rate
+If you have status codes labeled, use:
+
+
+sum by(namespace) (
+  rate(http_requests_total{status=~"5.."}[5m])
+)
+To get error % over total:
+
+
+(
+  sum(rate(http_requests_total{status=~"5.."}[5m]))
+  /
+  sum(rate(http_requests_total[5m]))
+) * 100
+
+
+🕵️ 4. Compare Cluster A vs Cluster B
+If your Prometheus is multi-cluster aware (via Thanos, VictoriaMetrics, etc.), and you're tagging metrics with a cluster label:
+
+
+sum by(cluster) (
+  rate(http_requests_total[1m])
+)
+If not, just rely on different namespaces (e.g., demo-kubevirt, demo-baremetal):
+
+
+sum by(namespace) (
+  rate(http_requests_total[1m])
+)
+You can then compare request rate, latency, error rate per namespace, which maps back to each cluster.
+
+
+histogram_quantile(0.95,
+  sum by (le) (
+    rate(http_request_duration_seconds_bucket[1m])
+  )
+)
+
+
+n the same or separate panels:
+
+🟢 Request Rate (QPS)
+
+sum by (job) (
+  rate(http_requests_total[1m])
+)
+🔴 Error Rate (%)
+
+(
+  sum(rate(http_requests_total{status=~"5.."}[5m]))
+  /
+  sum(rate(http_requests_total[5m]))
+) * 100
