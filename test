@@ -1,22 +1,31 @@
-# Aggregate total used and capacity per Env
-summary_tb = cluster_summary.groupby("Env")[["used_gib", "capacity_gib"]].sum().reset_index()
-summary_tb["used_tb"] = summary_tb["used_gib"] / 1024
-summary_tb["capacity_tb"] = summary_tb["capacity_gib"] / 1024
+# Convert GiB to TB for plotting
+prod_summary["used_tb"] = prod_summary["used_gib"] / 1024
+prod_summary["capacity_tb"] = prod_summary["capacity_gib"] / 1024
+nonprod_summary["used_tb"] = nonprod_summary["used_gib"] / 1024
+nonprod_summary["capacity_tb"] = nonprod_summary["capacity_gib"] / 1024
 
-# Save to a new sheet in Excel
-with pd.ExcelWriter("cluster_storage_summary.xlsx", mode="a", if_sheet_exists="replace") as writer:
-    summary_tb[["Env","used_tb","capacity_tb"]].to_excel(writer, sheet_name="HighLevelSummary", index=False)
-
-# Plot high-level summary bar chart
-import matplotlib.pyplot as plt
-plt.figure(figsize=(6,4))
-x = range(len(summary_tb))
-plt.bar(x, summary_tb["capacity_tb"], width=0.4, label="Capacity TB", color="lightgray")
-plt.bar(x, summary_tb["used_tb"], width=0.4, label="Used TB", color="steelblue")
-plt.xticks(x, summary_tb["Env"])
+# Plot Prod clusters in TB
+plt.figure(figsize=(10,6))
+x = range(len(prod_summary))
+plt.bar(x, prod_summary["capacity_tb"], width=0.4, label="Capacity TB", color="lightgray")
+plt.bar(x, prod_summary["used_tb"], width=0.4, label="Used TB", color="steelblue")
+plt.xticks(x, prod_summary["Cluster"], rotation=45, ha="right")
 plt.ylabel("Storage (TB)")
-plt.title("High-Level Storage Summary per Environment")
+plt.title("Prod Clusters - Storage Usage vs Capacity (TB)")
 plt.legend()
 plt.tight_layout()
-plt.savefig("highlevel_storage_summary.png")
+plt.savefig("prod_cluster_storage_tb.png")
+plt.show()
+
+# Plot Non-Prod clusters in TB
+plt.figure(figsize=(10,6))
+x = range(len(nonprod_summary))
+plt.bar(x, nonprod_summary["capacity_tb"], width=0.4, label="Capacity TB", color="lightgray")
+plt.bar(x, nonprod_summary["used_tb"], width=0.4, label="Used TB", color="steelblue")
+plt.xticks(x, nonprod_summary["Cluster"], rotation=45, ha="right")
+plt.ylabel("Storage (TB)")
+plt.title("Non-Prod Clusters - Storage Usage vs Capacity (TB)")
+plt.legend()
+plt.tight_layout()
+plt.savefig("nonprod_cluster_storage_tb.png")
 plt.show()
