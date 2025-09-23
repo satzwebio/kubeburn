@@ -1,72 +1,22 @@
-import pandas as pd
+# Aggregate total used and capacity per Env
+summary_tb = cluster_summary.groupby("Env")[["used_gib", "capacity_gib"]].sum().reset_index()
+summary_tb["used_tb"] = summary_tb["used_gib"] / 1024
+summary_tb["capacity_tb"] = summary_tb["capacity_gib"] / 1024
+
+# Save to a new sheet in Excel
+with pd.ExcelWriter("cluster_storage_summary.xlsx", mode="a", if_sheet_exists="replace") as writer:
+    summary_tb[["Env","used_tb","capacity_tb"]].to_excel(writer, sheet_name="HighLevelSummary", index=False)
+
+# Plot high-level summary bar chart
 import matplotlib.pyplot as plt
-
-# Read Excel (replace with your file name)
-df = pd.read_excel("openshift_storage.xlsx")
-
-# Function to normalize values into GiB
-def to_gib(value):
-    value = str(value).strip()
-    if value in ["0", "0.0", "", "None", "nan"]:   # Handle empty or zero strings
-        return 0
-    if value.endswith("Ti"):
-        return float(value.replace("Ti", "")) * 1024
-    elif value.endswith("Gi"):
-        return float(value.replace("Gi", ""))
-    elif value.endswith("Mi"):
-        return float(value.replace("Mi", "")) / 1024
-    else:
-        # If no unit, assume GiB
-        return float(value)
-
-# Split Storage column into Used and Capacity
-df[["used_raw", "capacity_raw"]] = df["Storage"].str.split("/", expand=True)
-df["used_gib"] = df["used_raw"].apply(to_gib)
-df["capacity_gib"] = df["capacity_raw"].apply(to_gib)
-
-# Handle usage percentage safely (avoid divide by zero)
-df["usage_pct"] = (df["used_gib"] / df["capacity_gib"].replace(0, pd.NA)) * 100
-
-# 👉 Group by Env + Cluster
-cluster_summary = df.groupby(["Env", "Cluster"])[["used_gib", "capacity_gib"]].sum().reset_index()
-cluster_summary["usage_pct"] = (cluster_summary["used_gib"] / cluster_summary["capacity_gib"].replace(0, pd.NA)) * 100
-
-# Separate Prod vs Non-Prod
-prod_summary = cluster_summary[cluster_summary["Env"].str.contains("prod", case=False, na=False)]
-nonprod_summary = cluster_summary[~cluster_summary["Env"].str.contains("prod", case=False, na=False)]
-
-# ---- Plot Prod ----
-plt.figure(figsize=(10,6))
-x = range(len(prod_summary))
-plt.bar(x, prod_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
-plt.bar(x, prod_summary["used_gib"], width=0.4, label="Used", color="steelblue")
-plt.xticks(x, prod_summary["Cluster"], rotation=45, ha="right")
-plt.ylabel("Storage (GiB)")
-plt.title("Prod Clusters - Storage Usage vs Capacity")
+plt.figure(figsize=(6,4))
+x = range(len(summary_tb))
+plt.bar(x, summary_tb["capacity_tb"], width=0.4, label="Capacity TB", color="lightgray")
+plt.bar(x, summary_tb["used_tb"], width=0.4, label="Used TB", color="steelblue")
+plt.xticks(x, summary_tb["Env"])
+plt.ylabel("Storage (TB)")
+plt.title("High-Level Storage Summary per Environment")
 plt.legend()
 plt.tight_layout()
-plt.savefig("prod_cluster_storage.png")
+plt.savefig("highlevel_storage_summary.png")
 plt.show()
-
-# ---- Plot Non-Prod ----
-plt.figure(figsize=(10,6))
-x = range(len(nonprod_summary))
-plt.bar(x, nonprod_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
-plt.bar(x, nonprod_summary["used_gib"], width=0.4, label="Used", color="steelblue")
-plt.xticks(x, nonprod_summary["Cluster"], rotation=45, ha="right")
-plt.ylabel("Storage (GiB)")
-plt.title("Non-Prod Clusters - Storage Usage vs Capacity")
-plt.legend()
-plt.tight_layout()
-plt.savefig("nonprod_cluster_storage.png")
-plt.show()
-
-# Save summary tables back to Excel
-with pd.ExcelWriter("cluster_storage_summary.xlsx") as writer:
-    prod_summary.to_excel(writer, sheet_name="Prod", index=False)
-    nonprod_summary.to_excel(writer, sheet_name="NonProd", index=False)
-
-# Optional: Save problematic rows where Capacity = 0 but Used > 0
-invalid = df[(df["capacity_gib"] == 0) & (df["used_gib"] > 0)]
-if not invalid.empty:
-    invalid.to_excel("invalid_rows.xlsx", index=False)
