@@ -27,29 +27,44 @@ df["capacity_gib"] = df["capacity_raw"].apply(to_gib)
 # Handle usage percentage safely (avoid divide by zero)
 df["usage_pct"] = (df["used_gib"] / df["capacity_gib"].replace(0, pd.NA)) * 100
 
-# 👉 Group by Cluster instead of Env
-cluster_summary = df.groupby("Cluster")[["used_gib", "capacity_gib"]].sum().reset_index()
+# 👉 Group by Env + Cluster
+cluster_summary = df.groupby(["Env", "Cluster"])[["used_gib", "capacity_gib"]].sum().reset_index()
 cluster_summary["usage_pct"] = (cluster_summary["used_gib"] / cluster_summary["capacity_gib"].replace(0, pd.NA)) * 100
 
-# Plot: Used vs Capacity per Cluster
+# Separate Prod vs Non-Prod
+prod_summary = cluster_summary[cluster_summary["Env"].str.contains("prod", case=False, na=False)]
+nonprod_summary = cluster_summary[~cluster_summary["Env"].str.contains("prod", case=False, na=False)]
+
+# ---- Plot Prod ----
 plt.figure(figsize=(10,6))
-x = range(len(cluster_summary))
-plt.bar(x, cluster_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
-plt.bar(x, cluster_summary["used_gib"], width=0.4, label="Used", color="steelblue")
-
-# Add labels
-plt.xticks(x, cluster_summary["Cluster"], rotation=45, ha="right")
+x = range(len(prod_summary))
+plt.bar(x, prod_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
+plt.bar(x, prod_summary["used_gib"], width=0.4, label="Used", color="steelblue")
+plt.xticks(x, prod_summary["Cluster"], rotation=45, ha="right")
 plt.ylabel("Storage (GiB)")
-plt.title("Cluster-wise Storage Usage vs Capacity")
+plt.title("Prod Clusters - Storage Usage vs Capacity")
 plt.legend()
-
-# Save & show
 plt.tight_layout()
-plt.savefig("cluster_storage_usage.png")
+plt.savefig("prod_cluster_storage.png")
 plt.show()
 
-# Save summary table back to Excel (including percentage)
-cluster_summary.to_excel("cluster_storage_summary.xlsx", index=False)
+# ---- Plot Non-Prod ----
+plt.figure(figsize=(10,6))
+x = range(len(nonprod_summary))
+plt.bar(x, nonprod_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
+plt.bar(x, nonprod_summary["used_gib"], width=0.4, label="Used", color="steelblue")
+plt.xticks(x, nonprod_summary["Cluster"], rotation=45, ha="right")
+plt.ylabel("Storage (GiB)")
+plt.title("Non-Prod Clusters - Storage Usage vs Capacity")
+plt.legend()
+plt.tight_layout()
+plt.savefig("nonprod_cluster_storage.png")
+plt.show()
+
+# Save summary tables back to Excel
+with pd.ExcelWriter("cluster_storage_summary.xlsx") as writer:
+    prod_summary.to_excel(writer, sheet_name="Prod", index=False)
+    nonprod_summary.to_excel(writer, sheet_name="NonProd", index=False)
 
 # Optional: Save problematic rows where Capacity = 0 but Used > 0
 invalid = df[(df["capacity_gib"] == 0) & (df["used_gib"] > 0)]
