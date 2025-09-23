@@ -1,0 +1,57 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Read Excel (replace with your file name)
+df = pd.read_excel("openshift_storage.xlsx")
+
+# Function to normalize values into GiB
+def to_gib(value):
+    value = str(value).strip()
+    if value in ["0", "0.0", "", "None", "nan"]:   # Handle empty or zero strings
+        return 0
+    if value.endswith("Ti"):
+        return float(value.replace("Ti", "")) * 1024
+    elif value.endswith("Gi"):
+        return float(value.replace("Gi", ""))
+    elif value.endswith("Mi"):
+        return float(value.replace("Mi", "")) / 1024
+    else:
+        # If no unit, assume GiB
+        return float(value)
+
+# Split Storage column into Used and Capacity
+df[["used_raw", "capacity_raw"]] = df["Storage"].str.split("/", expand=True)
+df["used_gib"] = df["used_raw"].apply(to_gib)
+df["capacity_gib"] = df["capacity_raw"].apply(to_gib)
+
+# Handle usage percentage safely (avoid divide by zero)
+df["usage_pct"] = (df["used_gib"] / df["capacity_gib"].replace(0, pd.NA)) * 100
+
+# 👉 Group by Cluster instead of Env
+cluster_summary = df.groupby("Cluster")[["used_gib", "capacity_gib"]].sum().reset_index()
+cluster_summary["usage_pct"] = (cluster_summary["used_gib"] / cluster_summary["capacity_gib"].replace(0, pd.NA)) * 100
+
+# Plot: Used vs Capacity per Cluster
+plt.figure(figsize=(10,6))
+x = range(len(cluster_summary))
+plt.bar(x, cluster_summary["capacity_gib"], width=0.4, label="Capacity", color="lightgray")
+plt.bar(x, cluster_summary["used_gib"], width=0.4, label="Used", color="steelblue")
+
+# Add labels
+plt.xticks(x, cluster_summary["Cluster"], rotation=45, ha="right")
+plt.ylabel("Storage (GiB)")
+plt.title("Cluster-wise Storage Usage vs Capacity")
+plt.legend()
+
+# Save & show
+plt.tight_layout()
+plt.savefig("cluster_storage_usage.png")
+plt.show()
+
+# Save summary table back to Excel (including percentage)
+cluster_summary.to_excel("cluster_storage_summary.xlsx", index=False)
+
+# Optional: Save problematic rows where Capacity = 0 but Used > 0
+invalid = df[(df["capacity_gib"] == 0) & (df["used_gib"] > 0)]
+if not invalid.empty:
+    invalid.to_excel("invalid_rows.xlsx", index=False)
