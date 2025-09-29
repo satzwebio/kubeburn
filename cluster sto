@@ -1,0 +1,128 @@
+import pandas as pd
+import glob, re, os
+import matplotlib.pyplot as plt
+
+# ---------- CONFIG ----------
+SHEET_NAME = "All clusters user namespaces"
+shared_clusters = [
+    # TODO: fill with your 19 shared cluster names exactly as in Excel
+    # "shared-cluster-1", "shared-cluster-2", ...
+]
+
+# ---------- HELPERS ----------
+def to_gib(value: str) -> float:
+    value = str(value).strip()
+    if value in ("", "None", "nan", "NaN"):
+        return 0.0
+    num = re.sub(r"[^0-9.]", "", value)
+    if num == "":
+        return 0.0
+    v = float(num)
+    val_lower = value.lower()
+    if val_lower.endswith(("ti", "t", "tb")):
+        return v * 1024.0
+    if val_lower.endswith(("gi", "g", "gb")):
+        return v
+    if val_lower.endswith(("mi", "m", "mb")):
+        return v / 1024.0
+    return v  # assume GiB if no unit
+
+def extract_month_from_filename(path: str) -> str:
+    # expects Abc-namespace-details_YYYY-MM-DD.xlsx -> YYYY-MM
+    base = os.path.basename(path)
+    m = re.search(r"_(\d{4})-(\d{2})-\d{2}\.xlsx$", base)
+    if not m:
+        # fallback: keep filename
+        return base
+    return f"{m.group(1)}-{m.group(2)}"
+
+# ---------- LOAD & FILTER ----------
+all_files = sorted(glob.glob("Abc-namespace-details_*.xlsx"))
+df_list, skipped_list = [], []
+
+for f in all_files:
+    try:
+        t = pd.read_excel(f, sheet_name=SHEET_NAME)
+    except Exception as e:
+        print(f"Skip {f}: {e}")
+        continue
+    t["Month"] = extract_month_from_filename(f)
+
+    # Ensure required columns exist
+    for col in ["Cluster", "Storage", "Env"]:
+        if col not in t.columns:
+            raise ValueError(f"Column '{col}' missing in {f}")
+
+    # Filter shared clusters
+    included = t[t["Cluster"].isin(shared_clusters)].copy()
+    skipped = t[~t["Cluster"].isin(shared_clusters)].copy()
+    if not included.empty: df_list.append(included)
+    if not skipped.empty: skipped_list.append(skipped)
+
+# Combine
+if not df_list:
+    raise SystemExit("No rows matched the shared clusters list. Check names in 'shared_clusters'.")
+
+df_all = pd.concat(df_list, ignore_index=True)
+
+# Save skipped clusters (for audit)
+if skipped_list:
+    pd.concat(skipped_list, ignore_index=True).to_excel("skipped_clusters.xlsx", index=False)
+
+# ---------- PARSE STORAGE ----------
+# Storage is like "90Gi/500Gi", "1Ti/2000Gi", "500Mi/1Gi", "10/20", "0/0", "100Gi/0", etc.
+used_cap = df_all["Storage"].astype(str).str.split("/", expand=True)
+df_all["used_gib"] = used_cap[0].apply(to_gib)
+df_all["capacity_gib"] = used_cap[1].apply(to_gib)
+
+# Guard against divide-by-zero; not strictly needed for totals, but useful
+df_all["usage_pct"] = (df_all["used_gib"] / df_all["capacity_gib"].replace(0, pd.NA)) * 100
+
+# ---------- AGGREGATE BY MONTH + ENV ----------
+monthly_env = (
+    df_all.groupby(["Month", "Env"], as_index=False)[["used_gib", "capacity_gib"]]
+    .sum()
+    .sort_values("Month")
+)
+# Convert to TB for plotting
+monthly_env["used_tb"] = monthly_env["used_gib"] / 1024.0
+monthly_env["capacity_tb"] = monthly_env["capacity_gib"] / 1024.0
+
+# Ensure months are ordered chronologically (YYYY-MM)
+monthly_env = monthly_env.sort_values("Month", key=lambda s: pd.to_datetime(s + "-01", errors="coerce"))
+
+# Split Prod / Non-Prod (case-insensitive, exact match)
+prod = monthly_env[monthly_env["Env"].str.lower() == "prod"].copy()
+nonprod = monthly_env[monthly_env["Env"].str.lower() == "nonprod"].copy()
+
+# ---------- SAVE SUMMARY EXCEL ----------
+with pd.ExcelWriter("shared_clusters_totals_by_month.xlsx") as w:
+    monthly_env[["Month","Env","used_tb","capacity_tb"]].to_excel(w, sheet_name="ByMonthEnv", index=False)
+    prod[["Month","used_tb","capacity_tb"]].to_excel(w, sheet_name="Prod", index=False)
+    nonprod[["Month","used_tb","capacity_tb"]].to_excel(w, sheet_name="NonProd", index=False)
+
+# ---------- PLOT: PROD ----------
+plt.figure(figsize=(10,6))
+plt.plot(prod["Month"], prod["capacity_tb"], marker="o", label="Capacity TB")
+plt.plot(prod["Month"], prod["used_tb"], marker="o", label="Used TB")
+plt.xticks(rotation=45)
+plt.ylabel("TB")
+plt.title("Shared Clusters (Prod) — Total Used vs Capacity by Month")
+plt.legend()
+plt.tight_layout()
+plt.savefig("shared_prod_total_tb_by_month.png")
+plt.show()
+
+# ---------- PLOT: NON-PROD ----------
+plt.figure(figsize=(10,6))
+plt.plot(nonprod["Month"], nonprod["capacity_tb"], marker="o", label="Capacity TB")
+plt.plot(nonprod["Month"], nonprod["used_tb"], marker="o", label="Used TB")
+plt.xticks(rotation=45)
+plt.ylabel("TB")
+plt.title("Shared Clusters (Non-Prod) — Total Used vs Capacity by Month")
+plt.legend()
+plt.tight_layout()
+plt.savefig("shared_nonprod_total_tb_by_month.png")
+plt.show()
+
+print("Done. Wrote charts PNGs and 'shared_clusters_totals_by_month.xlsx'.")
