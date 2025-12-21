@@ -1,0 +1,13 @@
+Phase,Duration,Key Activities (Updated),Primary Owners,Key Deliverables
+1. Initiation & Planning,Week 1–2,• Stakeholder identification• Scope & success criteria• Dependency & risk analysis• High-level timeline & milestones,OpenShift Platform Team,"Project charter, scope document"
+2. Design & Architecture,Week 2–3,• High-level & low-level architecture diagrams• Network & security design• Namespace & RBAC model• Backup/restore flow design,Platform + Cohesity + Security,Approved design diagrams
+3. POC (LLE),Week 3–5,• Cohesity integration in LLE• Functional backup & restore validation• Initial performance observations• POC review & sign-off,Platform + Cohesity,"POC report, sign-off"
+4. Build & Automation,Week 5–7,• ACM policy-as-code for Cohesity namespaces• GitOps repo structure• Secrets & RBAC automation,Platform Team,"ACM policies, GitOps repo"
+5. Testing & Validation,Week 6–9,• Functional test cases• Performance testing (backup/restore SLA)• Negative & failure tests• Scalability testing,Platform + Vendor,Test plan & results
+"6. Monitoring, Alerting & SLA Definition",Week 8–10,• Monitoring & alerting integration• Backup success/failure alerts• Backup & Restore SLA documentation• Capacity & performance metrics,Platform,"Monitoring dashboards, SLA docs"
+"7. Governance, Security & PTO",Week 8–10,• Security & compliance review• PTO documentation preparation• Risk & exception handling• PTO approval,Platform + Security,PTO approval
+"8. QA, UAT & RACI Definition",Week 9–10,• QA validation• UAT with representative apps• RACI model definition (Day-2 ownership)• Operational ownership sign-off,Platform + App Teams,"UAT sign-off, RACI matrix"
+9. Release Readiness,Week 10–11,• Runbooks & rollback plan• Release readiness checklist• Ops & support handover,Platform,Release readiness approval
+10. Production Release,Week 11–12,• Production ACM policy deployment• Cohesity production integration• Smoke tests & validation,Platform + Cohesity,Production go-live
+"11. Enablement, Demos & Documentation",Week 12+,• Internal team demos• Business / external user demos• User onboarding documentation• How-to guides & FAQs,Platform Team,"User docs, demo recordings"
+12. Post-Release Review & Optimization,Ongoing,• Feedback collection• Performance tuning• Feature backlog & enhancements,Platform + Vendor,"PIR report, roadmap"
