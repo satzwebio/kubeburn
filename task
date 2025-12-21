@@ -1,0 +1,91 @@
+2. Detailed Roadmap (Task-Level)
+Status values example: Not Started / In Progress / Blocked / Completed
+Phase 1: Initiation & Planning
+Task
+Identify stakeholders (Platform, Cohesity, Security, Network, App teams)
+Define scope & success criteria
+Define supported OpenShift versions
+Define supported Cohesity versions
+Define in-scope backup/restore use cases
+Risk assessment & dependency identification
+Project plan & milestones sign-off
+Phase 2: Design & Architecture
+Task
+High-level architecture diagram
+Network connectivity design (firewalls, ports, routing)
+Authentication model (RBAC, service accounts, secrets)
+Namespace strategy for Cohesity components
+ACM governance model
+Backup/restore workflow design
+Failure & recovery scenarios
+Final design review & approval
+Phase 3: POC in LLE
+Task
+Provision LLE OpenShift cluster
+Verify connectivity to Cohesity on-prem
+Install Cohesity components
+Validate namespace isolation
+Validate backup of sample workloads
+Validate restore (same cluster)
+Validate restore (new namespace)
+POC success criteria validation
+POC sign-off
+Phase 4: Build & Automation
+Task
+Create Cohesity namespaces via ACM
+Define ACM policies (RBAC, quotas, labels)
+GitOps repo structure definition
+Policy-as-code review
+Secrets management integration
+CI validation for policies
+Phase 5: Testing & Validation
+Task
+Functional test cases definition
+Backup/restore test matrix
+Negative test cases (failure, corruption)
+Performance tests (backup duration, restore SLA)
+Scalability tests (multiple namespaces)
+Security tests (RBAC, access isolation)
+Disaster recovery simulation
+Test results review & sign-off
+Phase 6: Governance, Security & PTO
+Task
+Security architecture review
+Compliance mapping (data residency, encryption)
+PTO documentation preparation
+Risk & exception handling
+PTO approval
+Phase 7: QA, UAT & RACI
+Task
+QA environment validation
+UAT scenarios with sample apps
+Business acceptance sign-off
+RACI model definition
+Ownership clarification (Day-2 ops)
+Phase 8: Release Readiness
+Task
+Runbook creation
+Monitoring & alerting integration
+Backup SLA documentation
+Rollback plan
+Release readiness review
+Phase 9: Production Release
+Task
+Production ACM policy deployment
+Production Cohesity integration
+Smoke testing
+Production sign-off
+Phase 10: Enablement & Adoption
+Task
+Internal team demo
+Business user demos
+User onboarding documentation
+How-to guides (backup/restore)
+FAQ & troubleshooting docs
+Knowledge transfer to ops teams
+Phase 11: Post-Release & Optimization
+Task
+Post-implementation review
+Feedback collection
+Performance tuning
+Feature backlog creation
