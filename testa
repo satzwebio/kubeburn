@@ -1,0 +1,223 @@
+Cohesity Backup for OpenShift – Application Team Guide
+Purpose of This Document
+
+This document provides application teams with a high-level understanding of how backups work for OpenShift namespaces using Cohesity, what is protected by default, and how to request backup onboarding or special configurations.
+
+High-Level Architecture Overview
+
+Cohesity is deployed on enterprise on-premises infrastructure
+
+OpenShift clusters have secure network connectivity to the Cohesity platform
+
+The OpenShift Platform team has already:
+
+Integrated Cohesity with OpenShift
+
+Registered supported OpenShift clusters with Cohesity
+
+If your namespace belongs to a cluster not yet registered, the platform team will take care of cluster registration as part of onboarding
+
+👉 Application teams do NOT interact directly with Cohesity
+All onboarding and configuration is handled via the OpenShift Platform / SRE team.
+
+How Namespace Backup Works (Simple Flow)
+
+Your application runs in an OpenShift namespace
+
+The namespace is labeled by the platform team for backup
+
+Cohesity automatically:
+
+Discovers the namespace
+
+Backs up Kubernetes objects and persistent data
+
+Backups run based on the policy you selected
+
+Once enabled, no application changes are required for standard backups.
+
+How to Request Backup for Your Namespace
+
+To enable backup for your namespace, submit an SRE request in the service portal with the following details:
+
+Required Information	Description
+Cluster Name	OpenShift cluster where your app is deployed
+Namespace Name	Namespace to be protected
+Backup Policy	Choose one of the standard policies listed below
+
+Once approved:
+
+The platform team applies the required labels
+
+Your namespace becomes protected automatically
+
+What Is Protected by Default
+
+When a namespace is onboarded:
+
+✅ All Kubernetes objects, including:
+
+Deployments, StatefulSets, Services
+
+ConfigMaps, Secrets
+
+Jobs, CronJobs, Routes, etc.
+
+✅ All Persistent Volume Claims (PVCs) in the namespace
+
+⚠️ No action is required from the application team unless you have special requirements (see below).
+
+Backup Policies
+
+A backup policy defines:
+
+How often backups are taken
+
+How long backups are retained
+
+Standard Policies Available
+Policy Name	Backup Frequency	Retention
+Daily – 4 Hour Retention	Once per day	4 hours
+Daily – Standard Retention	Once per day	As per enterprise retention standard
+
+👉 Application teams must choose one of the above policies during onboarding.
+
+For compliance or application-specific needs, exceptions can be discussed (see Special Cases).
+
+Backup Types Supported
+
+Cohesity supports two backup mechanisms for OpenShift:
+
+1. CSI-Based Backup (Default & Recommended)
+
+This is the default backup method used for all namespaces unless specified otherwise.
+
+Key Benefits
+
+Uses Kubernetes CSI snapshots (storage-native)
+
+Faster backup and restore
+
+Minimal performance impact on running applications
+
+Crash-consistent backups
+
+Supports application quiescing via hooks
+
+Best option for stateful and production workloads
+
+Fully supported by all OpenShift storage classes used in the enterprise
+
+Quiesce Support
+
+Allows execution of:
+
+Pre-backup commands (e.g., pause writes, flush buffers)
+
+Post-backup commands (e.g., resume application)
+
+Useful for databases and stateful services
+
+👉 Recommended for most applications, including databases.
+
+2. File-Based Backup (Special Use Only)
+
+File-based backup operates by copying files from mounted volumes instead of using storage snapshots.
+
+When File-Based Backup May Be Needed
+
+Legacy or non-CSI compliant storage (rare)
+
+Applications that cannot tolerate CSI snapshots
+
+Very specific application behavior or vendor limitations
+
+Temporary workaround during troubleshooting
+
+⚠️ File-based backups:
+
+Are generally slower
+
+Have higher runtime impact
+
+Are not the enterprise default
+
+👉 Must be explicitly requested and approved.
+
+Special Cases & Exceptions
+
+If your application has non-standard requirements, mention them clearly in the SRE request.
+
+1. File-Based Backup Request
+
+If you require file-based backups, provide:
+
+Reason for the request
+
+Application details
+
+Any vendor documentation (if applicable)
+
+2. Quiesce Mode (Pre/Post Hooks)
+
+If your application needs commands to run before or after backup:
+
+Provide:
+
+Pre-hook command(s)
+
+Post-hook command(s)
+
+Container name (if multiple containers exist)
+
+Common use cases:
+
+Databases
+
+Applications with in-memory state
+
+3. Change in Policy Type
+
+If the standard policies do not meet your needs:
+
+Explain the business or compliance requirement
+
+Platform team will review feasibility and retention impact
+
+4. Excluding Specific PVCs or Resources
+
+If certain PVCs or resources should NOT be backed up:
+
+Specify:
+
+PVC name(s) or resource type(s)
+
+Reason for exclusion (cache, temp data, rebuildable data, etc.)
+
+What Happens Next
+
+The platform team will:
+
+Review your request
+
+Validate compatibility
+
+Reach out if clarification is required
+
+Once approved:
+
+Backup is enabled
+
+No further action is required from the application team
+
+Summary
+
+Backup is namespace-based
+
+CSI-based backup is the default and recommended option
+
+All objects and PVCs are protected automatically
+
+Special requirements are supported through a request process
+
+Application teams do not manage Cohesity directly
